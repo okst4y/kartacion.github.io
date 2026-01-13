@@ -1,0 +1,1946 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NEW YEAR EDITION</title>
+
+    <!-- Yandex Maps -->
+    <script src="https://api-maps.yandex.ru/2.1?apikey=API&lang=ru_RU"></script>
+    <!-- QRCode -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Segoe UI", Arial, sans-serif;
+        }
+
+        body {
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+            background: #0a0a1a;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Звёзды и снег (эффекты) - ПОВЕРХ ВСЕГО */
+        #stars-container,
+        #snow-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        #stars-container {
+            z-index: 1200;
+        }
+
+        #snow-container {
+            z-index: 1199;
+        }
+
+        .falling-star {
+            position: absolute;
+            background: white;
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            box-shadow: 0 0 4px #fff, 0 0 8px #a8e6cf;
+            opacity: 0;
+            animation: slowStarFall linear infinite;
+        }
+
+        @keyframes slowStarFall {
+            0% {
+                transform: translateY(-10px) scale(0.5);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+                transform: translateY(5vh) scale(1);
+            }
+            90% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(105vh) scale(0.5);
+                opacity: 0;
+            }
+        }
+
+        .snowflake {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.9;
+            filter: blur(0.5px);
+            animation: snowFall linear infinite;
+        }
+
+        @keyframes snowFall {
+            0% {
+                transform: translateY(-10px) translateX(0) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.9;
+            }
+            90% {
+                opacity: 0.7;
+            }
+            100% {
+                transform: translateY(105vh) translateX(20px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* Переключатель эффектов - ПОВЕРХ ЧЁРНОГО ЭКРАНА */
+        .effects-toggle {
+            position: absolute;
+            bottom: 100px;
+            left: 10px;
+            z-index: 1201;
+            background: rgba(20, 10, 40, 0.7);
+            padding: 6px 10px;
+            border-radius: 10px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(0, 255, 255, 0.25);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toggle-title {
+            color: #00ffff;
+            font-size: 0.65em;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .toggle-label {
+            display: none;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 42px;
+            height: 22px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(100, 100, 150, 0.7);
+            transition: 0.4s;
+            border-radius: 20px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #00ffff;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        /* Панель управления справа */
+        @keyframes panelBorderGlow {
+            0% {
+                border-color: #ff0000;
+                box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+            }
+            20% {
+                border-color: #ffff00;
+                box-shadow: 0 0 15px rgba(255, 255, 0, 0.4);
+            }
+            40% {
+                border-color: #00ff00;
+                box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+            }
+            60% {
+                border-color: #00ffff;
+                box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+            }
+            80% {
+                border-color: #0000ff;
+                box-shadow: 0 0 15px rgba(0, 0, 255, 0.4);
+            }
+            100% {
+                border-color: #ff00ff;
+                box-shadow: 0 0 15px rgba(255, 0, 255, 0.4);
+            }
+        }
+
+        .control-panel {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 1150;
+            background: rgba(20, 10, 40, 0.95);
+            padding: 15px;
+            border-radius: 12px;
+            width: 220px;
+            border: 3px solid #ff0000;
+            animation: panelBorderGlow 8s infinite alternate;
+        }
+
+        .garland-container {
+            position: absolute;
+            top: -6px;
+            left: -6px;
+            right: -6px;
+            bottom: -6px;
+            pointer-events: none;
+            z-index: 1002;
+        }
+
+        .light-bulb {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ccc;
+            box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+            animation: garlandGlow 2s infinite alternate;
+        }
+
+        @keyframes garlandGlow {
+            0% {
+                background: #ff0000;
+                box-shadow: 0 0 10px #ff0000;
+            }
+            25% {
+                background: #ffd700;
+                box-shadow: 0 0 10px #ffd700;
+            }
+            50% {
+                background: #00ff00;
+                box-shadow: 0 0 10px #00ff00;
+            }
+            75% {
+                background: #00ffff;
+                box-shadow: 0 0 10px #00ffff;
+            }
+            100% {
+                background: #ff00ff;
+                box-shadow: 0 0 10px #ff00ff;
+            }
+        }
+
+        .lb-1 { top: -5px; left: -5px; }
+        .lb-2 { top: -5px; left: 50%; transform: translateX(-50%); }
+        .lb-3 { top: -5px; right: -5px; }
+        .lb-4 { top: 50%; right: -5px; transform: translateY(-50%); }
+        .lb-5 { bottom: -5px; right: -5px; }
+        .lb-6 { bottom: -5px; left: 50%; transform: translateX(-50%); }
+        .lb-7 { bottom: -5px; left: -5px; }
+        .lb-8 { top: 50%; left: -5px; transform: translateY(-50%); }
+
+        /* Таймер */
+        .timer-panel {
+            background: rgba(30, 15, 50, 0.9);
+            padding: 8px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            text-align: center;
+            border: 1px solid #ff6b6b;
+            transition: all 0.3s ease;
+        }
+
+        #timerDisplay {
+            font-size: 1.6em;
+            font-weight: 700;
+            font-family: "Courier New", monospace;
+            color: #ff6b6b;
+            margin: 4px 0;
+            display: block;
+            transition: all 0.3s ease;
+        }
+
+        /* ДРАМАТИЧЕСКИЙ ЭФФЕКТ ДЛЯ ПОСЛЕДНИХ 30 СЕКУНД */
+        @keyframes timerCritical {
+            0%, 100% {
+                transform: scale(1);
+                text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000, 0 0 30px #ff0000;
+            }
+            50% {
+                transform: scale(1.15);
+                text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000, 0 0 60px #ff0000, 0 0 80px #ff0000;
+            }
+        }
+
+        @keyframes panelCritical {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(255, 0, 0, 0.6), inset 0 0 20px rgba(255, 0, 0, 0.3);
+                border-color: #ff0000;
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(255, 0, 0, 0.9), inset 0 0 40px rgba(255, 0, 0, 0.5);
+                border-color: #ff3333;
+            }
+        }
+
+        .timer-panel.critical {
+            animation: panelCritical 1s infinite;
+            background: rgba(50, 10, 10, 0.95);
+        }
+
+        #timerDisplay.critical {
+            animation: timerCritical 1s infinite;
+            color: #ff0000;
+            font-size: 2.2em;
+        }
+
+        .timer-controls {
+            display: flex;
+            gap: 5px;
+            margin-top: 6px;
+        }
+
+        .timer-btn {
+            flex: 1;
+            padding: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.7em;
+        }
+
+        #addMinute {
+            background: #27ae60;
+            color: white;
+        }
+
+        #removeMinute {
+            background: #e74c3c;
+            color: white;
+        }
+
+        #startPauseBtn {
+            background: #8a2be2;
+            color: white;
+        }
+
+        #startPauseBtn.running {
+            background: #e74c3c;
+        }
+
+        .input-group {
+            margin-bottom: 8px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 3px;
+            color: #c9b6e6;
+            font-weight: 600;
+            font-size: 0.7em;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 5px 8px;
+            background: rgba(10, 5, 25, 0.9);
+            border: 1px solid rgba(138, 43, 226, 0.4);
+            border-radius: 5px;
+            font-size: 0.8em;
+            color: white;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #8a2be2;
+        }
+
+        .coordinates {
+            font-size: 0.6em;
+            color: #a78fdb;
+            text-align: center;
+            margin: 5px 0;
+            font-family: "Courier New", monospace;
+            padding: 4px;
+            border-radius: 4px;
+            background: rgba(10, 5, 25, 0.6);
+        }
+
+        .cube-info {
+            font-size: 0.7em;
+            color: #ffd700;
+            text-align: center;
+            margin: 8px 0;
+            padding: 5px;
+            background: rgba(138, 43, 226, 0.2);
+            border-radius: 5px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .arrow-cube-wrapper {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            margin: 12px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cube-btn {
+            width: 55px;
+            height: 55px;
+            background: linear-gradient(135deg, #ff00ff, #ff1493);
+            border: 2px solid #00ff00;
+            border-radius: 10px;
+            cursor: pointer;
+            color: white;
+            font-size: 2.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 25px rgba(255, 0, 255, 0.7);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .arrow-btn {
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            color: white;
+            background: rgba(138, 43, 226, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+        }
+
+        .arrow-top {
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .arrow-bottom {
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .arrow-left {
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .arrow-right {
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .bottom-controls {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .bottom-control-btn {
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8em;
+            text-align: center;
+            width: 100%;
+        }
+
+        #resetBtn {
+            background: linear-gradient(135deg, #ff0000, #ff6b6b);
+            color: white;
+        }
+
+        #undoBtn {
+            background: linear-gradient(135deg, #ff8c00, #ffd700);
+            color: black;
+        }
+
+        #routeBtn {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            display: none;
+            border: 2px solid #fff;
+        }
+
+        .coordinate-panel {
+            position: absolute;
+            top: 450px;
+            right: 15px;
+            z-index: 1150;
+            background: rgba(20, 10, 40, 0.85);
+            padding: 10px;
+            border-radius: 8px;
+            width: 220px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 5px rgba(0, 255, 255, 0.2);
+            transition: opacity 0.3s;
+        }
+
+        .coordinate-title {
+            text-align: center;
+            color: #00ffff;
+            font-weight: 600;
+            font-size: 0.8em;
+            margin-bottom: 8px;
+        }
+
+        .coordinate-input {
+            width: 100%;
+            padding: 6px;
+            background: rgba(10, 5, 25, 0.9);
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            border-radius: 5px;
+            color: white;
+            font-size: 0.8em;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .coordinate-input:focus {
+            outline: none;
+            border-color: #00ffff;
+        }
+
+        #setCoordinatesBtn {
+            width: 100%;
+            padding: 6px;
+            background: rgba(0, 180, 219, 0.8);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.75em;
+        }
+
+        .coordinate-panel.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-10px);
+        }
+
+        .stats-panel {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            z-index: 1150;
+            background: rgba(20, 10, 40, 0.9);
+            padding: 8px;
+            border-radius: 6px;
+            width: 120px;
+            border: 1px solid #00ffff;
+            box-shadow: 0 0 8px rgba(0, 255, 255, 0.2);
+        }
+
+        .stats-title {
+            text-align: center;
+            margin-bottom: 6px;
+            font-size: 0.8em;
+            font-weight: 700;
+            color: #00ffff;
+        }
+
+        .stats-item-title {
+            color: #00ffff;
+            font-size: 0.65em;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 2px;
+        }
+
+        .stats-value {
+            font-size: 1.1em;
+            font-weight: 700;
+            font-family: "Courier New", monospace;
+            color: white;
+            text-align: center;
+        }
+
+        .logs-panel {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            z-index: 1150;
+            background: rgba(10, 5, 25, 0.9);
+            padding: 6px;
+            border-radius: 6px;
+            width: 250px;
+            max-height: 80px;
+            overflow-y: auto;
+            border: 1px solid #8a2be2;
+            box-shadow: 0 0 10px rgba(138, 43, 226, 0.3);
+        }
+
+        .logs-title {
+            color: #8a2be2;
+            font-size: 0.7em;
+            font-weight: 700;
+            margin-bottom: 3px;
+            text-align: center;
+        }
+
+        .log-entry {
+            font-size: 0.6em;
+            color: #ffffff;
+            margin-bottom: 2px;
+            padding: 2px;
+            border-bottom: 1px solid rgba(138, 43, 226, 0.2);
+            font-family: "Courier New", monospace;
+        }
+
+        .log-time {
+            color: #00ffff;
+            font-weight: 600;
+            margin-right: 4px;
+        }
+
+        #feedbackBtn {
+            position: absolute;
+            bottom: 35px;
+            right: 8px;
+            z-index: 1150;
+            background: linear-gradient(135deg, #00b4db, #0083b0);
+            color: white;
+            border: 1px solid #00ffff;
+            box-shadow: 0 0 5px rgba(0, 255, 255, 0.3);
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8em;
+        }
+
+        .footer-signature {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            z-index: 1150;
+            color: #c9b6e6;
+            font-size: 0.7em;
+            font-weight: 600;
+            background: rgba(20, 10, 40, 0.7);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(138, 43, 226, 0.4);
+        }
+
+        .enthusiasts {
+            color: #00ffff;
+            font-weight: 700;
+        }
+
+        .game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .game-over-content {
+            background: linear-gradient(135deg, #8a2be2, #ff0000);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 0 50px rgba(255, 0, 0, 0.7);
+            border: 3px solid #ffd700;
+        }
+
+        .game-over-title {
+            font-size: 3em;
+            font-weight: 900;
+            color: white;
+            margin-bottom: 20px;
+            letter-spacing: 3px;
+        }
+
+        .game-over-subtitle {
+            font-size: 2em;
+            font-weight: 700;
+            color: #ffd700;
+        }
+
+        .message-banner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2001;
+            display: none;
+            padding: 20px 30px;
+            border-radius: 15px;
+            font-weight: 900;
+            font-size: 1.8em;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .pause-banner {
+            background: linear-gradient(135deg, #8a2be2, #9370db);
+            color: white;
+            border: 3px solid #00ffff;
+        }
+
+        .plus-banner {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            border: 3px solid #ffd700;
+        }
+
+        .minus-banner {
+            background: linear-gradient(135deg, #e74c3c, #ff6b6b);
+            color: white;
+            border: 3px solid #ffd700;
+        }
+
+        .random-banner {
+            background: linear-gradient(135deg, #ff00ff, #8a2be2);
+            color: white;
+            border: 3px solid #00ff00;
+            font-size: 1.8em;
+        }
+
+        .shot-banner {
+            background: linear-gradient(135deg, #00ff00, #008000);
+            color: white;
+            border: 3px solid #ffd700;
+            font-size: 1.8em;
+        }
+
+        .cube-banner {
+            background: linear-gradient(135deg, #ff8c00, #ffd700);
+            color: black;
+            border: 3px solid #8a2be2;
+            font-size: 2em;
+        }
+
+        .start-hint-banner {
+            background: linear-gradient(135deg, #ff6b6b, #ff0000);
+            color: white;
+            border: 3px solid #ffd700;
+        }
+
+        #routeOptions {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20, 10, 40, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            z-index: 2000;
+            text-align: center;
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+        }
+
+        #routeOptions h2 {
+            color: #00ffff;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        #routeOptions button {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: linear-gradient(135deg, #8a2be2, #ff00ff);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+        }
+
+        #qrModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 3000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #qrContainer {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        #qrContainer button {
+            margin-top: 15px;
+            padding: 8px 16px;
+            background: #8a2be2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .punishment-panel {
+            position: absolute;
+            top: 150px;
+            left: 8px;
+            z-index: 1150;
+            background: rgba(20, 10, 40, 0.9);
+            padding: 8px;
+            border-radius: 6px;
+            width: 160px;
+            border: 1px solid #ff0000;
+            box-shadow: 0 0 8px rgba(255, 0, 0, 0.2);
+        }
+
+        .punishment-title {
+            text-align: center;
+            color: #ff0000;
+            font-weight: 700;
+            font-size: 0.8em;
+            margin-bottom: 6px;
+        }
+
+        .punishment-input {
+            width: 100%;
+            padding: 8px;
+            background: rgba(10, 5, 25, 0.9);
+            border: 1px solid rgba(255, 0, 0, 0.4);
+            border-radius: 5px;
+            color: white;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-align: center;
+            resize: vertical;
+            overflow: hidden;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            min-height: 55px;
+            line-height: 1.4;
+        }
+
+        /* ЧЁРНЫЙ ОВЕРЛЕЙ СЛЕПОГО РЕЖИМА - НИЖЕ ЭФФЕКТОВ И UI */
+        #mapBlackScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000000;
+            z-index: 1100;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #mapBlackScreen.active {
+            display: flex;
+        }
+
+        #mapBlackText {
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: bold;
+            text-align: center;
+            line-height: 1.6;
+            letter-spacing: 2px;
+        }
+
+        /* ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМОВ */
+        .mode-toggle {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1150;
+            background: rgba(20, 10, 40, 0.9);
+            padding: 8px 16px;
+            border-radius: 25px;
+            border: 2px solid rgba(138, 43, 226, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 0 15px rgba(138, 43, 226, 0.3);
+        }
+
+        .mode-label {
+            font-size: 0.75em;
+            font-weight: 700;
+            letter-spacing: 1px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .mode-label.classic {
+            color: #666;
+        }
+
+        .mode-label.blind {
+            color: #666;
+        }
+
+        .mode-label.active {
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+        }
+
+        .mode-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+        }
+
+        .mode-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .mode-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            transition: 0.4s;
+            border-radius: 26px;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
+        }
+
+        .mode-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            transition: 0.4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        input:checked + .mode-slider {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5), 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        input:checked + .mode-slider:before {
+            transform: translateX(24px);
+            background: #333;
+            box-shadow: 0 0 8px rgba(255,255,255,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <!-- ЧЁРНЫЙ ЭКРАН СЛЕПОГО РЕЖИМА -->
+    <div id="mapBlackScreen">
+        <div id="mapBlackText">
+            СЛЕПОЙ РЕЖИМ<br />
+            КАРТА СКРЫТА
+        </div>
+    </div>
+
+    <!-- ЭФФЕКТЫ ПОВЕРХ ВСЕГО -->
+    <div id="stars-container"></div>
+    <div id="snow-container"></div>
+
+    <!-- ПЕРЕКЛЮЧАТЕЛЬ ЭФФЕКТОВ -->
+    <div class="effects-toggle">
+        <div class="toggle-title">ЭФФЕКТЫ</div>
+        <div class="toggle-switch">
+            <label class="switch">
+                <input type="checkbox" id="effectsToggle" checked />
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <div class="stats-panel" id="statsPanel">
+        <div class="stats-title">СТАТИСТИКА</div>
+        <div class="stats-item">
+            <div class="stats-item-title">ДИСТАНЦИЯ, км</div>
+            <div class="stats-value" id="totalDistance">0<span class="stats-unit"></span></div>
+        </div>
+    </div>
+
+    <div class="punishment-panel" id="punishmentPanel">
+        <div class="punishment-title">НАКАЗАНИЕ</div>
+        <textarea id="punishmentInput" class="punishment-input" placeholder="Введи наказание..."></textarea>
+    </div>
+
+    <div class="control-panel">
+        <div class="garland-container">
+            <div class="light-bulb lb-1"></div>
+            <div class="light-bulb lb-2"></div>
+            <div class="light-bulb lb-3"></div>
+            <div class="light-bulb lb-4"></div>
+            <div class="light-bulb lb-5"></div>
+            <div class="light-bulb lb-6"></div>
+            <div class="light-bulb lb-7"></div>
+            <div class="light-bulb lb-8"></div>
+        </div>
+
+        <div class="timer-panel" id="timerPanel">
+            <span id="timerDisplay">05:00</span>
+            <div class="timer-controls">
+                <button class="timer-btn" id="removeMinute">-1</button>
+                <button class="timer-btn" id="addMinute">+1</button>
+                <button class="timer-btn" id="startPauseBtn">СТАРТ</button>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label for="pricePerMeter">Цена за метр</label>
+            <input type="number" id="pricePerMeter" value="100" min="1" />
+        </div>
+
+        <div class="input-group">
+            <label for="donationAmount">Сумма доната</label>
+            <input type="number" id="donationAmount" value="1000" min="1" />
+        </div>
+
+        <div class="cube-info">x1–x6</div>
+
+        <div class="coordinates" id="currentCoords">—</div>
+
+        <div class="arrow-cube-wrapper">
+            <div class="cube-btn" id="cubeBtn">🎲</div>
+            <button class="arrow-btn arrow-top" id="arrowUp">▲</button>
+            <button class="arrow-btn arrow-bottom" id="arrowDown">▼</button>
+            <button class="arrow-btn arrow-left" id="arrowLeft">◄</button>
+            <button class="arrow-btn arrow-right" id="arrowRight">►</button>
+        </div>
+
+        <div class="bottom-controls">
+            <button class="bottom-control-btn" id="resetBtn">СБРОС</button>
+            <button class="bottom-control-btn" id="undoBtn">ОТМЕНА</button>
+            <button class="bottom-control-btn" id="routeBtn">QR МАРШРУТ</button>
+        </div>
+    </div>
+
+    <div class="coordinate-panel" id="coordinatePanel">
+        <div class="coordinate-title">ЗАДАТЬ СТАРТ ПО КООРДИНАТАМ</div>
+        <input
+            type="text"
+            id="coordInput"
+            class="coordinate-input"
+            placeholder="55.7512, 37.6184"
+        />
+        <button id="setCoordinatesBtn">Установить</button>
+    </div>
+
+    <div class="logs-panel">
+        <div class="logs-title">ЛОГИ</div>
+        <div id="logsContainer"></div>
+    </div>
+
+    <button id="feedbackBtn">ОБРАТНАЯ СВЯЗЬ</button>
+
+    <div class="footer-signature">
+        <span class="enthusiasts">OKST4Y+KOTVMESCHKE</span>
+    </div>
+
+    <div class="game-over" id="gameOver">
+        <div class="game-over-content">
+            <div class="game-over-title">TIME'S UP!</div>
+            <div class="game-over-subtitle">Маршрут построен</div>
+        </div>
+    </div>
+
+    <div class="message-banner start-hint-banner" id="startHintBanner">
+        Установи стартовую точку — ЛКМ
+    </div>
+
+    <div class="message-banner pause-banner" id="pauseBanner">
+        ПАУЗА
+    </div>
+
+    <div class="message-banner plus-banner" id="plusBanner">
+        +1 МИНУТА
+    </div>
+
+    <div class="message-banner minus-banner" id="minusBanner">
+        -1 МИНУТА
+    </div>
+
+    <div class="message-banner random-banner" id="randomBanner">
+        <span id="randomDirectionText"></span>
+    </div>
+
+    <div class="message-banner shot-banner" id="shotBanner">
+        ШОТ! <span id="shotAmount">1000</span>
+    </div>
+
+    <div class="message-banner cube-banner" id="cubeBanner">
+        x<span id="cubeMultiplier">1</span> = <span id="cubeAmount">1000</span>
+    </div>
+
+    <div id="routeOptions">
+        <h2>Тип маршрута в Яндекс.Картах</h2>
+        <button id="walkBtn">Пешком</button>
+        <button id="bikeBtn">Велосипед</button>
+        <button id="carBtn">Авто</button>
+    </div>
+
+    <div id="qrModal">
+        <div id="qrContainer">
+            <div id="qrcode"></div>
+            <button id="openBrowserBtn">Открыть в Яндекс.Картах</button>
+            <button id="closeQrBtn">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМОВ -->
+    <div class="mode-toggle">
+        <span class="mode-label classic active" id="classicLabel">КЛАССИЧЕСКИЙ</span>
+        <label class="mode-switch">
+            <input type="checkbox" id="blindModeToggle" />
+            <span class="mode-slider"></span>
+        </label>
+        <span class="mode-label blind" id="blindLabel">СЛЕПОЙ</span>
+    </div>
+
+    <audio id="heartbeat" src="https://zvukogram.com/zvuk/23779" loop></audio>
+
+    <script>
+        let map,
+            startPlacemark = null,
+            currentPlacemark = null,
+            currentPolyline = null,
+            isFirstClick = true;
+
+        let startCoordinates = null;
+        let lastCoordinates = null;
+        let totalDistance = 0;
+
+        let timerInterval;
+        let timeLeft = 5 * 60;
+        let isTimerRunning = false;
+        let gameEnded = false;
+
+        let movementHistory = [];
+
+        let effectsEnabled = true;
+        let snowInterval = null;
+        let starsInterval = null;
+
+        let isBlindMode = false;
+
+        let currentQrUrl = null;
+
+        function toggleEffects(enable) {
+            effectsEnabled = enable;
+
+            const snowContainer = document.getElementById("snow-container");
+            if (enable) {
+                snowContainer.style.display = "block";
+                startSnowEffect();
+            } else {
+                snowContainer.style.display = "none";
+                stopSnowEffect();
+            }
+
+            const garlandContainer = document.querySelector(".garland-container");
+            if (garlandContainer) {
+                garlandContainer.style.display = enable ? "block" : "none";
+            }
+
+            const starsContainer = document.getElementById("stars-container");
+            if (enable) {
+                starsContainer.style.display = "block";
+                startStarsEffect();
+            } else {
+                starsContainer.style.display = "none";
+                stopStarsEffect();
+            }
+        }
+
+        function startSnowEffect() {
+            if (snowInterval) clearInterval(snowInterval);
+            createSnowflake();
+            snowInterval = setInterval(createSnowflake, 50);
+        }
+
+        function stopSnowEffect() {
+            if (snowInterval) clearInterval(snowInterval);
+            snowInterval = null;
+            const snowContainer = document.getElementById("snow-container");
+            snowContainer.innerHTML = "";
+        }
+
+        function startStarsEffect() {
+            if (starsInterval) clearInterval(starsInterval);
+            createFallingStar();
+            starsInterval = setInterval(createFallingStar, 200);
+        }
+
+        function stopStarsEffect() {
+            if (starsInterval) clearInterval(starsInterval);
+            starsInterval = null;
+            const starsContainer = document.getElementById("stars-container");
+            starsContainer.innerHTML = "";
+        }
+
+        function createFallingStar() {
+            if (!effectsEnabled) return;
+            const container = document.getElementById("stars-container");
+            const star = document.createElement("div");
+            star.className = "falling-star";
+            star.style.left = Math.random() * 100 + "vw";
+            star.style.animationDuration = Math.random() * 5 + 5 + "s";
+            star.style.animationDelay = Math.random() * 2 + "s";
+            const size = Math.random() * 3 + 1;
+            star.style.width = size + "px";
+            star.style.height = size + "px";
+            container.appendChild(star);
+            setTimeout(() => {
+                if (star.parentNode) star.parentNode.removeChild(star);
+            }, 10000);
+        }
+
+        function createSnowflake() {
+            if (!effectsEnabled) return;
+            const container = document.getElementById("snow-container");
+            const snowflake = document.createElement("div");
+            snowflake.className = "snowflake";
+            const size = Math.random() * 8 + 4;
+            snowflake.style.width = size + "px";
+            snowflake.style.height = size + "px";
+            snowflake.style.left = Math.random() * 100 + "vw";
+            const duration = Math.random() * 5 + 8;
+            snowflake.style.animationDuration = duration + "s";
+            snowflake.style.animationDelay = Math.random() * 5 + "s";
+            snowflake.style.boxShadow = "0 0 8px rgba(255, 255, 255, 0.8)";
+            container.appendChild(snowflake);
+            setTimeout(() => {
+                if (snowflake.parentNode) snowflake.parentNode.removeChild(snowflake);
+            }, 13000);
+        }
+
+        document
+            .getElementById("effectsToggle")
+            .addEventListener("change", function () {
+                toggleEffects(this.checked);
+                addLog(this.checked ? "Эффекты включены" : "Эффекты выключены");
+            });
+
+        document
+            .getElementById("feedbackBtn")
+            .addEventListener("click", () =>
+                window.open("https://t.me/kartacion", "_blank")
+            );
+
+        function addLog(text) {
+            const logsContainer = document.getElementById("logsContainer");
+            const now = new Date();
+            const h = now.getHours().toString().padStart(2, "0");
+            const m = now.getMinutes().toString().padStart(2, "0");
+            const s = now.getSeconds().toString().padStart(2, "0");
+            const timeString = `${h}:${m}:${s}`;
+
+            const logEntry = document.createElement("div");
+            logEntry.className = "log-entry";
+            logEntry.innerHTML = `<span class="log-time">${timeString}</span><span class="log-text">${text}</span>`;
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+
+            if (logsContainer.children.length > 50) {
+                logsContainer.removeChild(logsContainer.firstChild);
+            }
+        }
+
+        function resetEverything() {
+            if (map && map.geoObjects) map.geoObjects.removeAll();
+            startPlacemark = null;
+            currentPlacemark = null;
+            currentPolyline = null;
+            isFirstClick = true;
+            startCoordinates = null;
+            lastCoordinates = null;
+            totalDistance = 0;
+            gameEnded = false;
+            movementHistory = [];
+
+            document.getElementById("routeBtn").style.display = "none";
+            document.getElementById("totalDistance").innerHTML = "0";
+
+            document.getElementById("currentCoords").textContent = "—";
+
+            document
+                .querySelectorAll(
+                    ".arrow-btn, .timer-btn, input, #cubeBtn, select, .bottom-control-btn"
+                )
+                .forEach((btn) => {
+                    btn.disabled = false;
+                    btn.style.opacity = 1;
+                });
+
+            timeLeft = 5 * 60;
+            updateTimerDisplay();
+            isTimerRunning = false;
+            document.getElementById("timerDisplay").textContent = "05:00";
+            document.getElementById("startPauseBtn").textContent = "СТАРТ";
+            document.getElementById("startPauseBtn").classList.remove("running");
+
+            document.getElementById("coordinatePanel").classList.remove("hidden");
+            document.getElementById("gameOver").style.display = "none";
+
+            addLog("Полный сброс");
+        }
+
+        document.getElementById("resetBtn").addEventListener("click", resetEverything);
+
+        function undoLastStep() {
+            if (movementHistory.length === 0) return;
+
+            const lastMove = movementHistory.pop();
+
+            if (movementHistory.length === 0) {
+                resetEverything();
+                return;
+            }
+
+            const prevMove = movementHistory[movementHistory.length - 1];
+            lastCoordinates = prevMove.coords;
+
+            if (map && map.geoObjects) map.geoObjects.removeAll();
+
+            if (startCoordinates) {
+                startPlacemark = new ymaps.Placemark(
+                    startCoordinates,
+                    {},
+                    {
+                        preset: "islands#blueStretchyIcon",
+                        iconColor: "#0000ff",
+                        draggable: false,
+                    }
+                );
+                map.geoObjects.add(startPlacemark);
+            }
+
+            currentPlacemark = new ymaps.Placemark(
+                lastCoordinates,
+                {},
+                {
+                    preset: "islands#greenCircleIcon",
+                    draggable: false,
+                }
+            );
+            map.geoObjects.add(currentPlacemark);
+
+            movementHistory.forEach((move, index) => {
+                if (index === 0) return;
+                const prevCoords = movementHistory[index - 1].coords;
+                const polyline = new ymaps.Polyline(
+                    [prevCoords, move.coords],
+                    {},
+                    {
+                        strokeColor: "#8A2BE2",
+                        strokeWidth: 5,
+                        strokeOpacity: 0.9,
+                    }
+                );
+                map.geoObjects.add(polyline);
+            });
+
+            updateTotalDistance();
+            document.getElementById("currentCoords").textContent =
+                lastCoordinates[0].toFixed(4) + ", " + lastCoordinates[1].toFixed(4);
+            map.panTo(lastCoordinates, { duration: 300 });
+
+            addLog("Отмена: " + lastMove.direction);
+        }
+
+        document.getElementById("undoBtn").addEventListener("click", undoLastStep);
+
+        function rollCube() {
+            const multiplier = Math.floor(Math.random() * 6) + 1;
+            const baseAmount = parseFloat(document.getElementById("donationAmount").value) || 0;
+            const multipliedAmount = baseAmount * multiplier;
+
+            document.getElementById("cubeMultiplier").textContent = multiplier;
+            document.getElementById("cubeAmount").textContent = multipliedAmount;
+
+            showBanner("cubeBanner", 3000);
+            addLog(`Кубик: x${multiplier}, сумма ${multipliedAmount}`);
+
+            document.getElementById("donationAmount").value = multipliedAmount;
+        }
+
+        document.getElementById("cubeBtn").addEventListener("click", rollCube);
+
+        ymaps.ready(initMap);
+
+        function initMap() {
+            map = new ymaps.Map("map", {
+                center: [55.751244, 37.618423],
+                zoom: 12,
+                controls: [],
+            });
+
+            map.events.add("click", function (e) {
+                if (isFirstClick) {
+                    const coords = e.get("coords");
+                    setStartPoint(coords);
+                    isFirstClick = false;
+                    toggleEffects(true);
+                    addLog("Старт по клику");
+                    if (!isTimerRunning) startTimer();
+                }
+            });
+
+            showBanner("startHintBanner", 4000);
+            addLog("Подсказка: Установи стартовую точку — ЛКМ");
+        }
+
+        function setStartPoint(coords) {
+            if (startPlacemark) map.geoObjects.remove(startPlacemark);
+            if (currentPlacemark) map.geoObjects.remove(currentPlacemark);
+
+            startPlacemark = new ymaps.Placemark(
+                coords,
+                {},
+                {
+                    preset: "islands#blueStretchyIcon",
+                    iconColor: "#0000ff",
+                    draggable: false,
+                }
+            );
+            currentPlacemark = new ymaps.Placemark(
+                coords,
+                {},
+                {
+                    preset: "islands#greenCircleIcon",
+                    draggable: false,
+                }
+            );
+
+            map.geoObjects.add(startPlacemark);
+            map.geoObjects.add(currentPlacemark);
+
+            startCoordinates = coords;
+            lastCoordinates = coords;
+
+            movementHistory = [
+                {
+                    direction: "start",
+                    amount: 0,
+                    distance: 0,
+                    coords: coords,
+                },
+            ];
+
+            document.getElementById("currentCoords").textContent =
+                coords[0].toFixed(4) + ", " + coords[1].toFixed(4);
+            map.panTo(coords, { duration: 300 });
+
+            updateTotalDistance();
+            addLog(
+                "Стартовые координаты: " +
+                    coords[0].toFixed(4) +
+                    ", " +
+                    coords[1].toFixed(4)
+            );
+
+            document.getElementById("coordinatePanel").classList.add("hidden");
+
+            if (!isTimerRunning) startTimer();
+        }
+
+        function setStartPointByCoordinates() {
+            const coordInput = document.getElementById("coordInput").value.trim();
+            if (!coordInput) {
+                alert("Введите координаты!");
+                return;
+            }
+
+            let lat, lon;
+            const parts = coordInput.split(",");
+            if (parts.length === 2) {
+                lat = parseFloat(parts[0].replace(",", "."));
+                lon = parseFloat(parts[1].replace(",", "."));
+            } else {
+                alert("Неверный формат. Пример: 55.7512, 37.6184");
+                return;
+            }
+
+            if (isNaN(lat) || isNaN(lon)) {
+                alert("Координаты должны быть числами");
+                return;
+            }
+
+            if (lat < -90 || lat > 90) {
+                alert("Широта должна быть в диапазоне -90..90");
+                return;
+            }
+
+            if (lon < -180 || lon > 180) {
+                alert("Долгота должна быть в диапазоне -180..180");
+                return;
+            }
+
+            const coords = [lat, lon];
+            setStartPoint(coords);
+            isFirstClick = false;
+            addLog(
+                "Старт по координатам: " +
+                    lat.toFixed(4) +
+                    ", " +
+                    lon.toFixed(4)
+            );
+        }
+
+        document
+            .getElementById("setCoordinatesBtn")
+            .addEventListener("click", setStartPointByCoordinates);
+
+        document
+            .getElementById("coordInput")
+            .addEventListener("keypress", function (e) {
+                if (e.key === "Enter") setStartPointByCoordinates();
+            });
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371000;
+            const dLat = ((lat2 - lat1) * Math.PI) / 180;
+            const dLon = ((lon2 - lon1) * Math.PI) / 180;
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos((lat1 * Math.PI) / 180) *
+                    Math.cos((lat2 * Math.PI) / 180) *
+                    Math.sin(dLon / 2) *
+                    Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        function showBanner(bannerId, duration = 10000) {
+            const banners = document.querySelectorAll(".message-banner");
+            banners.forEach((banner) => (banner.style.display = "none"));
+
+            const banner = document.getElementById(bannerId);
+            if (!banner) return;
+
+            banner.style.display = "block";
+            setTimeout(() => {
+                banner.style.display = "none";
+            }, duration);
+        }
+
+        function updateTotalDistance() {
+            if (!startCoordinates || !lastCoordinates) {
+                totalDistance = 0;
+                document.getElementById("totalDistance").innerHTML = "0";
+                return;
+            }
+            totalDistance = calculateDistance(
+                startCoordinates[0],
+                startCoordinates[1],
+                lastCoordinates[0],
+                lastCoordinates[1]
+            );
+            const totalDistanceKm = (totalDistance / 1000).toFixed(1);
+            document.getElementById("totalDistance").innerHTML = totalDistanceKm;
+        }
+
+        function drawLine(direction) {
+            if (!lastCoordinates || !startCoordinates) {
+                showBanner("startHintBanner", 3000);
+                return;
+            }
+
+            const price =
+                parseFloat(document.getElementById("pricePerMeter").value) || 0;
+            const donation =
+                parseFloat(document.getElementById("donationAmount").value) || 0;
+
+            if (!price || !donation) {
+                alert("Укажи стоимость метра и сумму доната!");
+                return;
+            }
+
+            const distanceMeters = donation / price;
+            const latPerMeter = 1 / 111111;
+            const lonPerMeter =
+                1 / (111111 * Math.cos((lastCoordinates[0] * Math.PI) / 180));
+
+            let newCoords;
+
+            switch (direction) {
+                case "up":
+                    newCoords = [
+                        lastCoordinates[0] + distanceMeters * latPerMeter,
+                        lastCoordinates[1],
+                    ];
+                    break;
+                case "down":
+                    newCoords = [
+                        lastCoordinates[0] - distanceMeters * latPerMeter,
+                        lastCoordinates[1],
+                    ];
+                    break;
+                case "left":
+                    newCoords = [
+                        lastCoordinates[0],
+                        lastCoordinates[1] - distanceMeters * lonPerMeter,
+                    ];
+                    break;
+                case "right":
+                    newCoords = [
+                        lastCoordinates[0],
+                        lastCoordinates[1] + distanceMeters * lonPerMeter,
+                    ];
+                    break;
+                default:
+                    return;
+            }
+
+            const previousCoords = lastCoordinates;
+            lastCoordinates = newCoords;
+
+            currentPolyline = new ymaps.Polyline(
+                [previousCoords, newCoords],
+                {
+                    balloonContent: `${donation}₽<br>${distanceMeters.toFixed(1)} м`,
+                },
+                {
+                    strokeColor: "#8A2BE2",
+                    strokeWidth: 5,
+                    strokeOpacity: 0.9,
+                }
+            );
+            map.geoObjects.add(currentPolyline);
+
+            if (currentPlacemark) {
+                currentPlacemark.geometry.setCoordinates(newCoords);
+            }
+
+            const stepDistance = calculateDistance(
+                previousCoords[0],
+                previousCoords[1],
+                newCoords[0],
+                newCoords[1]
+            );
+
+            movementHistory.push({
+                direction,
+                amount: donation,
+                distance: stepDistance,
+                coords: newCoords,
+            });
+
+            updateTotalDistance();
+            document.getElementById("currentCoords").textContent =
+                lastCoordinates[0].toFixed(4) +
+                ", " +
+                lastCoordinates[1].toFixed(4);
+            map.panTo(lastCoordinates, { duration: 400 });
+
+            const dirText =
+                direction === "up"
+                    ? "Вверх"
+                    : direction === "down"
+                    ? "Вниз"
+                    : direction === "left"
+                    ? "Влево"
+                    : "Вправо";
+
+            addLog(
+                `${dirText}: ${donation}₽, ${distanceMeters.toFixed(1)} м`
+            );
+        }
+
+        document
+            .getElementById("arrowUp")
+            .addEventListener("click", () => drawLine("up"));
+        document
+            .getElementById("arrowDown")
+            .addEventListener("click", () => drawLine("down"));
+        document
+            .getElementById("arrowLeft")
+            .addEventListener("click", () => drawLine("left"));
+        document
+            .getElementById("arrowRight")
+            .addEventListener("click", () => drawLine("right"));
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            document.getElementById("timerDisplay").textContent =
+                minutes.toString().padStart(2, "0") +
+                ":" +
+                seconds.toString().padStart(2, "0");
+
+            const heartbeat = document.getElementById("heartbeat");
+            const timerDisplay = document.getElementById("timerDisplay");
+            const timerPanel = document.getElementById("timerPanel");
+
+            // ДРАМАТИЧЕСКИЙ ЭФФЕКТ: последние 30 секунд
+            if (timeLeft <= 30 && timeLeft > 0) {
+                timerDisplay.classList.add("critical");
+                timerPanel.classList.add("critical");
+                heartbeat.volume = 1.0;
+                heartbeat.play();
+            } else {
+                timerDisplay.classList.remove("critical");
+                timerPanel.classList.remove("critical");
+                heartbeat.pause();
+                heartbeat.currentTime = 0;
+            }
+        }
+
+        function showGameOver() {
+            gameEnded = true;
+            document.getElementById("gameOver").style.display = "flex";
+            document.getElementById("routeBtn").style.display = "block";
+
+            document
+                .querySelectorAll(
+                    ".arrow-btn, .timer-btn, input, #cubeBtn, select, #undoBtn"
+                )
+                .forEach((btn) => {
+                    btn.disabled = true;
+                    btn.style.opacity = 0.5;
+                });
+
+            const totalDistanceKm = (totalDistance / 1000).toFixed(1);
+            addLog(`Игра окончена! Дистанция: ${totalDistanceKm} км`);
+
+            setTimeout(() => {
+                document.getElementById("gameOver").style.display = "none";
+            }, 5000);
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+
+            timerInterval = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    showGameOver();
+                } else {
+                    timeLeft--;
+                    updateTimerDisplay();
+                }
+            }, 1000);
+
+            isTimerRunning = true;
+            document.getElementById("startPauseBtn").textContent = "ПАУЗА";
+            document.getElementById("startPauseBtn").classList.add("running");
+        }
+
+        function pauseTimer() {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            document.getElementById("startPauseBtn").textContent = "СТАРТ";
+            document.getElementById("startPauseBtn").classList.remove("running");
+            showBanner("pauseBanner", 2000);
+            addLog("Пауза таймера");
+        }
+
+        document
+            .getElementById("startPauseBtn")
+            .addEventListener("click", function () {
+                if (isTimerRunning) {
+                    pauseTimer();
+                } else {
+                    startTimer();
+                    addLog("Старт таймера");
+                }
+            });
+
+        document.getElementById("addMinute").addEventListener("click", function () {
+            timeLeft += 60;
+            updateTimerDisplay();
+            showBanner("plusBanner", 1500);
+            addLog("+1 минута");
+        });
+
+        document
+            .getElementById("removeMinute")
+            .addEventListener("click", function () {
+                if (timeLeft > 60) {
+                    timeLeft -= 60;
+                    updateTimerDisplay();
+                    showBanner("minusBanner", 1500);
+                    addLog("-1 минута");
+                } else {
+                    alert("Осталась только 1 минута, дальше нельзя уменьшать!");
+                }
+            });
+
+        updateTimerDisplay();
+
+        document.getElementById("routeBtn").addEventListener("click", () => {
+            if (!startCoordinates || !lastCoordinates) {
+                alert("Сначала построй маршрут!");
+                return;
+            }
+            document.getElementById("routeOptions").style.display = "block";
+            addLog("Окно выбора маршрута");
+        });
+
+        document.getElementById("walkBtn").addEventListener("click", () => {
+            generateQr("pd");
+        });
+        document.getElementById("bikeBtn").addEventListener("click", () => {
+            generateQr("bc");
+        });
+        document.getElementById("carBtn").addEventListener("click", () => {
+            generateQr("auto");
+        });
+
+        function generateQr(rtt) {
+            document.getElementById("routeOptions").style.display = "none";
+
+            const startLat = startCoordinates[0];
+            const startLon = startCoordinates[1];
+            const endLat = lastCoordinates[0];
+            const endLon = lastCoordinates[1];
+
+            const url = `https://yandex.ru/maps/?rtext=${startLat},${startLon}~${endLat},${endLon}&rtt=${rtt}`;
+            currentQrUrl = url;
+
+            document.getElementById("qrcode").innerHTML = "";
+            new QRCode(document.getElementById("qrcode"), url);
+            document.getElementById("qrModal").style.display = "flex";
+
+            const typeText = rtt === "pd" ? "пешком" : rtt === "bc" ? "велосипед" : "авто";
+            addLog("QR маршрут (" + typeText + ")");
+        }
+
+        document
+            .getElementById("closeQrBtn")
+            .addEventListener("click", () => (document.getElementById("qrModal").style.display = "none"));
+
+        document
+            .getElementById("openBrowserBtn")
+            .addEventListener("click", () => {
+                if (currentQrUrl) window.open(currentQrUrl, "_blank");
+            });
+
+        document
+            .getElementById("punishmentInput")
+            .addEventListener("input", function () {
+                this.value = this.value.toUpperCase();
+                this.style.height = "auto";
+                this.style.height = this.scrollHeight + "px";
+            });
+
+        // СЛЕПОЙ РЕЖИМ С ПОДСВЕТКОЙ ТЕКСТА
+
+        function setBlindMode(on) {
+            isBlindMode = on;
+            const overlay = document.getElementById("mapBlackScreen");
+            const classicLabel = document.getElementById("classicLabel");
+            const blindLabel = document.getElementById("blindLabel");
+
+            if (on) {
+                overlay.classList.add("active");
+                classicLabel.classList.remove("active");
+                blindLabel.classList.add("active");
+            } else {
+                overlay.classList.remove("active");
+                classicLabel.classList.add("active");
+                blindLabel.classList.remove("active");
+            }
+        }
+
+        document
+            .getElementById("blindModeToggle")
+            .addEventListener("change", function () {
+                setBlindMode(this.checked);
+                addLog(
+                    this.checked
+                        ? "Слепой режим включён"
+                        : "Классический режим"
+                );
+            });
+
+        document.getElementById("classicLabel").addEventListener("click", function() {
+            document.getElementById("blindModeToggle").checked = false;
+            setBlindMode(false);
+            addLog("Классический режим");
+        });
+
+        document.getElementById("blindLabel").addEventListener("click", function() {
+            document.getElementById("blindModeToggle").checked = true;
+            setBlindMode(true);
+            addLog("Слепой режим включён");
+        });
+    </script>
+</body>
+</html>
