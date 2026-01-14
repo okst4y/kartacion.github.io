@@ -6,7 +6,7 @@
     <title>NEW YEAR EDITION</title>
 
     <!-- Yandex Maps -->
-    <script src="https://api-maps.yandex.ru/2.1?apikey=YOUR_API_KEY&amp;lang=ru_RU"></script>
+    <script src="https://api-maps.yandex.ru/2.1?apikey=API&lang=ru_RU"></script>
     <!-- QRCode -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
@@ -1115,7 +1115,7 @@
 
     <div class="game-over" id="gameOver">
         <div class="game-over-content">
-            <div class="game-over-title">TIME'S UP!</div>
+            <div class="game-over-title">ВРЕМЯ ИСТЕКЛО, ПОРА ВЫЛЕЗАТЬ!</div>
             <div class="game-over-subtitle">Маршрут построен</div>
         </div>
     </div>
@@ -1764,6 +1764,14 @@
 
         function showGameOver() {
             gameEnded = true;
+
+            // Автоматически переключаем на классический режим при окончании таймера
+            if (isBlindMode) {
+                // Программно кликаем на классический режим
+                document.getElementById('classicLabel').click();
+                addLog('Слепой режим отключен - карта открыта');
+            }
+
             document.getElementById("gameOver").style.display = "flex";
             document.getElementById("routeBtn").style.display = "block";
 
