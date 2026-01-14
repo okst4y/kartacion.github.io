@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NEW YEAR EDITION</title>
+  <title>КАРТАЦИОН</title>
 
   <!-- Yandex Maps -->
   <script src="https://api-maps.yandex.ru/2.1/?apikey=API&lang=ru_RU"></script>
@@ -723,7 +723,7 @@
     <div id="supportContainer">
       <h3>Поддержать нас</h3>
       <div id="supportText">
-        Если ты решил поддержать нас, то обязательно напиши нам в ТГ предложку, мы отметим твой ник на самом сайте)
+        Если ты решил поддержать нас, то обязательно напиши нам в ТГ предложку, вы отметим твой ник на самом сайте)
       </div>
 
       <input id="trcAddress" type="text" readonly value="TJsEwbDVRrjcn2dKw1rMrJYgoxpiCae37N" />
@@ -1169,10 +1169,43 @@
       setTimeout(() => (banner.style.display = "none"), duration);
     }
 
-    // Auto-show banner on page load for 5 seconds
-    window.addEventListener('load', () => {
-      showBanner('startHintBanner', 5000);
-    });
+
+    // Show thanks modal on load; after closing show start hint banner for 5 seconds
+    function showStartHintAfterThanks() {
+      // Force show the banner element (some browsers may ignore display changes if executed too early)
+      setTimeout(() => {
+        const b = document.getElementById('startHintBanner');
+        if (b) {
+          b.style.zIndex = '4000';
+          b.style.display = 'block';
+        }
+        showBanner('startHintBanner', 5000);
+      }, 80);
+    }
+
+    function openThanksModal() {
+      const thanksModal = document.getElementById('thanksModal');
+      if (!thanksModal) {
+        showStartHintAfterThanks();
+        return;
+      }
+      thanksModal.style.display = 'flex';
+
+      const close = () => {
+        thanksModal.style.display = 'none';
+        showStartHintAfterThanks();
+      };
+
+      const closeBtn = document.getElementById('closeThanksBtn');
+      if (closeBtn) closeBtn.addEventListener('click', close, { once: true });
+
+      // Close by clicking on the dark background
+      thanksModal.addEventListener('click', (e) => {
+        if (e.target === thanksModal) close();
+      }, { once: true });
+    }
+
+    window.addEventListener('load', openThanksModal);
 
     function updateTotalDistance() {
       if (!startCoordinates || !lastCoordinates) {
@@ -1445,5 +1478,15 @@
       addLog("Режим: Слепой");
     });
   </script>
+
+  <!-- --- --- THANKS MODAL --- --- -->
+  <div id="thanksModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.82); z-index:3200; justify-content:center; align-items:center;">
+    <div id="thanksContainer" style="width:340px; max-width:calc(100vw - 24px); background:rgba(20,10,40,0.98); border:1px solid rgba(0,255,255,0.35); box-shadow:0 0 18px rgba(0,255,255,0.20); border-radius:12px; padding:16px; color:#ffffff; text-align:center;">
+      <h3 style="margin:0 0 10px 0; color:#00ffff; font-size:1.05em; letter-spacing:0.3px;">Отдельное спасибо</h3>
+      <div style=\"font-size:0.95em; color:#e8e8ff; line-height:1.45; margin-bottom:12px;\">Маратику. Удалили нашего продавца бананов с твича(</div>
+      <button id="closeThanksBtn" style="width:100%; padding:10px 10px; border:none; border-radius:8px; cursor:pointer; font-weight:800; font-size:0.9em; background:rgba(255,255,255,0.10); color:#ffffff; border:1px solid rgba(255,255,255,0.18);">Закрыть</button>
+    </div>
+  </div>
+
 </body>
 </html>
