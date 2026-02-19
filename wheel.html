@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Колесо Пьянства v1.0</title>
+    <title>Колесо повышенного градуса v1.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
@@ -354,7 +354,8 @@
                     </div>
                     <div>
                         <div class="title-font text-2xl font-semibold tracking-tighter">Колесо</div>
-                        <div class="title-font text-xl font-semibold tracking-tighter">Пьянства</div>
+                        <div class="title-font text-xl font-semibold tracking-tighter">Повышенного</div>
+                        <div class="title-font text-xl font-semibold tracking-tighter">Градуса</div>
                         <div class="text-xs text-zinc-500 font-mono">v1.0</div>
                     </div>
                 </div>
@@ -451,7 +452,7 @@
                         <div class="text-5xl sm:text-6xl">🍻</div>
                     </div>
                     <div class="title-font text-5xl sm:text-7xl font-black tracking-tighter mb-2 bg-gradient-to-r from-rose-400 via-orange-400 to-amber-400 bg-clip-text text-transparent">КОЛЕСО</div>
-                    <div class="title-font text-4xl sm:text-6xl font-bold tracking-tighter bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent -mt-2 mb-6">ПЬЯНСТВА</div>
+                    <div class="title-font text-4xl sm:text-6xl font-bold tracking-tighter bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent -mt-2 mb-6">ПОВЫШЕННОГО ГРАДУСА</div>
                     <div class="mt-4 text-zinc-300 max-w-md mx-auto text-sm sm:text-base leading-relaxed mb-8 px-4">
                         Добавьте участников и напитки. Крутите колёса фортуны, чтобы узнать кто и что будет пить! 🎰
                     </div>
@@ -1227,7 +1228,7 @@
             if (currentWho && currentDrink) {
                 const text = `${currentWho} пьёт ${currentDrink.name}! 🍻 #КолесоПьянства`;
                 if (navigator.share) {
-                    navigator.share({ title: 'Колесо Пьянства', text: text });
+                    navigator.share({ title: 'Колесо повышенного градуса', text: text });
                 } else {
                     alert(text);
                 }
